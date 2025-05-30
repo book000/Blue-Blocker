@@ -121,9 +121,11 @@ export function ParseTimelineTweet(tweet: any, config: CompiledConfig) {
 					?.core?.user_results?.result ||
 				tweet?.itemContent?.tweet_results?.result?.quoted_status_result?.result?.core
 					?.user_results?.result;
+			const legacyOrCore =
+				skippedUser.core.name !== undefined ? skippedUser.core : skippedUser.legacy;
 			console.log(
 				logstr,
-				`skipping ${skippedUser.legacy.name} (@${skippedUser.legacy.screen_name}) because they got retweeted by someone you follow`,
+				`skipping ${legacyOrCore.name} (@${legacyOrCore.screen_name}) because they got retweeted by someone you follow`,
 			);
 		}
 		// Handle retweets and quoted tweets (check the retweeted user, too)

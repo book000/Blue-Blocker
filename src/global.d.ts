@@ -57,6 +57,11 @@ interface BlueBlockerUser {
 			userLabelType?: string;
 		};
 	};
+	core: {
+		created_at: string;
+		name: string;
+		screen_name: string;
+	}
 	legacy: {
 		blocking?: boolean;
 		followed_by: boolean;

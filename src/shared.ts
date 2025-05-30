@@ -11,7 +11,6 @@ import {
 	ErrorEvent,
 	EventKey,
 	MessageEvent,
-	ReasonTransphobia,
 	ReasonPromoted,
 	HistoryStateGone,
 	SuccessStatus,
@@ -319,12 +318,13 @@ function queueBlockUser(
 	}
 	blockCache.add(user_id);
 
+	const legacyOrCore = user.core.name !== undefined ? user.core : user.legacy;
 	const blockUser: BlockUser = {
 		user_id,
 		reason,
 		user: {
-			name: user.legacy.name,
-			screen_name: user.legacy.screen_name,
+			name: legacyOrCore.name,
+			screen_name: legacyOrCore.screen_name,
 		},
 	};
 
@@ -336,14 +336,14 @@ function queueBlockUser(
 		.then(() => consumer.start()) // arrow func is required to maintain current context, passing the func shifts context and will result in an error
 		.then(() => api.storage.sync.get(DefaultOptions))
 		.then(config => config as Config)
-		.then(config =>
+		.then(config => {
+			const legacyOrCore = user.core.name !== undefined ? user.core : user.legacy;
 			console.log(
 				logstr,
-				`queued ${FormatLegacyName(user.legacy)} for a ${
-					config.mute ? 'mute' : 'block'
+				`queued ${FormatLegacyName(legacyOrCore)} for a ${config.mute ? 'mute' : 'block'
 				} due to ${ReasonMap[reason]}.`,
-			),
-		);
+			);
+		});
 }
 
 function checkBlockQueue(): Promise<void> {
@@ -395,7 +395,7 @@ const consumer = new QueueConsumer(api.storage.local, checkBlockQueue, async () 
 });
 consumer.start();
 
-const CsrfTokenRegex = /ct0=\s*(\w+);/;
+const CsrfTokenRegex = /ct0=\s*(\w+)(?:;|$)/;
 
 function blockUser(user: BlockUser, attempt = 1) {
 	const match = window.location.href.match(twitterWindowRegex);
@@ -613,17 +613,26 @@ export async function BlockBlueVerified(user: BlueBlockerUser, config: CompiledC
 		return;
 	}
 
-	const formattedUserName = FormatLegacyName(user.legacy);
+	const legacyOrCore = user.core.name !== undefined ? user.core : user.legacy;
+	const formattedUserName = FormatLegacyName(legacyOrCore);
 
 	// set up this funky little function so that we can return to exit early from verified block but continue with other steps
 	const done: boolean = await (async (): Promise<boolean> => {
 		try {
+			const legacyOrCore = user.core.name !== undefined ? user.core : user.legacy;
 			if (
 				user?.rest_id === undefined ||
-				user?.legacy?.name === undefined ||
-				user?.legacy?.screen_name === undefined
+				legacyOrCore?.name === undefined ||
+				legacyOrCore?.screen_name === undefined
 			) {
-				throw new Error('invalid user object passed to BlockBlueVerified');
+				console.debug('user.legacy', user.legacy);
+				console.debug('user.core', user.core);
+				console.debug('legacyOrCore', legacyOrCore);
+				throw new Error(
+					`invalid user object passed to BlockBlueVerified. ${
+						user.legacy.name !== undefined ? 'legacy' : 'core'
+					} user object is missing required properties.`,
+				);
 			}
 
 			const hasBlockableVerifiedTypes = blockableVerifiedTypes.has(
@@ -682,7 +691,7 @@ export async function BlockBlueVerified(user: BlueBlockerUser, config: CompiledC
 				if (
 					// group for skip-verified option
 					config.skipVerified &&
-					(await IsUserLegacyVerified(user.rest_id, user.legacy.screen_name))
+					(await IsUserLegacyVerified(user.rest_id, legacyOrCore.screen_name))
 				) {
 					console.log(
 						logstr,
@@ -741,7 +750,7 @@ export async function BlockBlueVerified(user: BlueBlockerUser, config: CompiledC
 	// Step 1.5: Check for disallowed words or emojis in usernames.
 	if (
 		config.blockDisallowedWords &&
-		config.disallowedWords?.test(user.legacy.name.replace(/\s{2,}/g, ' '))
+		config.disallowedWords?.test(legacyOrCore.name.replace(/\s{2,}/g, ' '))
 	) {
 		queueBlockUser(user, user.rest_id, ReasonDisallowedWordsOrEmojis);
 		console.log(
