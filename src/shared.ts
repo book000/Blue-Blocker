@@ -340,7 +340,8 @@ function queueBlockUser(
 			const legacyOrCore = user.core.name !== undefined ? user.core : user.legacy;
 			console.log(
 				logstr,
-				`queued ${FormatLegacyName(legacyOrCore)} for a ${config.mute ? 'mute' : 'block'
+				`queued ${FormatLegacyName(legacyOrCore)} for a ${
+					config.mute ? 'mute' : 'block'
 				} due to ${ReasonMap[reason]}.`,
 			);
 		});
@@ -658,18 +659,24 @@ export async function BlockBlueVerified(user: BlueBlockerUser, config: CompiledC
 			} else if (
 				// group for block-following option
 				!config.blockFollowing &&
-				(user.legacy?.following || user.super_following)
+				(user.legacy?.following ||
+					user.super_following ||
+					user.relationship_perspectives?.following)
 			) {
 				console.debug(logstr, `skipped user ${formattedUserName} because you follow them.`);
 				return true;
 			} else if (
 				// group for block-followers option
 				!config.blockFollowers &&
-				user.legacy?.followed_by
+				(user.legacy?.followed_by || user.relationship_perspectives?.followed_by)
 			) {
 				console.debug(logstr, `skipped user ${formattedUserName} because they follow you.`);
 				return true;
-			} else if (user.legacy?.blocking || (config.mute && user.legacy?.muting)) {
+			} else if (
+				user.legacy?.blocking ||
+				user.relationship_perspectives?.blocking ||
+				(config.mute && user.legacy?.muting)
+			) {
 				return true;
 			}
 

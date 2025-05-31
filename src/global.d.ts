@@ -61,7 +61,7 @@ interface BlueBlockerUser {
 		created_at: string;
 		name: string;
 		screen_name: string;
-	}
+	};
 	legacy: {
 		blocking?: boolean;
 		followed_by: boolean;
@@ -111,6 +111,11 @@ interface BlueBlockerUser {
 	profile_image_shape?: string;
 	promoted_tweet?: boolean;
 	used_blue?: boolean;
+	relationship_perspectives?: {
+		following: boolean;
+		followed_by?: boolean;
+		blocking?: boolean;
+	};
 }
 
 // extension message types
